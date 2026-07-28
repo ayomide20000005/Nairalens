@@ -1,13 +1,66 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?  @unique
+  trust     Int      @default(10)
+  role      String   @default("member") // "member" or "verifier"
+  createdAt DateTime @default(now())
+
+  claims  Claim[]
+  notes   Note[]
+  ratings Rating[]
+}
+
+model Claim {
+  id        String   @id @default(cuid())
+  text      String
+  category  String   // election | security | health | ethnic | other
+  region    String
+  harm      Boolean  @default(false)
+  status    String   @default("open") // open | resolved
+  createdAt DateTime @default(now())
+
+  submittedBy   User   @relation(fields: [submittedById], references: [id])
+  submittedById String
+
+  notes Note[]
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  verdict   String   // true | false | misleading | unverified
+  evidence  String
+  sources   String?
+  createdAt DateTime @default(now())
+
+  claim   Claim  @relation(fields: [claimId], references: [id])
+  claimId String
+
+  writtenBy   User   @relation(fields: [writtenById], references: [id])
+  writtenById String
+
+  ratings Rating[]
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  helpful   Boolean
+  createdAt DateTime @default(now())
+
+  note   Note   @relation(fields: [noteId], references: [id])
+  noteId String
+
+  ratedBy   User   @relation(fields: [ratedById], references: [id])
+  ratedById String
+
+  @@unique([noteId, ratedById])
 }
